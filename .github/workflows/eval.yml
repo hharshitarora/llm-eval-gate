@@ -1,0 +1,78 @@
+name: eval-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Build fixtures
+        run: python -m evalgate build
+      - name: Test
+        run: pytest
+
+  gate:
+    name: quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # No OPENAI_API_KEY anywhere in this job. The gate is deliberately
+      # runnable by anyone who forks this repo, including on a PR from a fork
+      # where secrets are not available.
+      - name: Install
+        run: pip install -r requirements-dev.txt
+
+      - name: Build fixtures
+        run: python -m evalgate build
+
+      - name: Verify fixture SHAs match the committed dataset
+        run: |
+          git diff --exit-code -- datasets/golden/cases.jsonl \
+            || (echo "::error::Fixture SHAs drifted from the committed dataset." && exit 1)
+
+      - name: Run gate against baseline
+        run: python -m evalgate run --adapter mock --trials 5 --markdown runs/summary.md
+
+      # A regression detector that has never detected a regression is a
+      # decoration. This step fails the build if the gate lets a known-bad
+      # agent through.
+      - name: Prove the gate blocks a known regression
+        run: |
+          if python -m evalgate run --adapter mock:degraded --trials 5 > /dev/null 2>&1; then
+            echo "::error::The gate passed a deliberately degraded agent."
+            exit 1
+          fi
+          echo "Gate correctly blocked the degraded profile."
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-summary
+          path: runs/
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request' && always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment "${{ github.event.number }}" --body-file runs/summary.md

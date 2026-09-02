@@ -1,0 +1,7 @@
+# This repo's ground truth is byte-level reproducible, so line endings cannot
+# vary by platform. The fixture generator always writes LF; without this a
+# Windows checkout gets CRLF and the CI dataset-drift check fails spuriously.
+* text=auto eol=lf
+*.jsonl text eol=lf
+*.json  text eol=lf
+*.py    text eol=lf

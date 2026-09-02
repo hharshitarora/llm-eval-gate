@@ -1,0 +1,41 @@
+{
+  "_comment": "Merge policy. Reviewed like code, because it is the definition of 'good enough to ship'.",
+  "metrics": {
+    "completed": {
+      "direction": "higher",
+      "floor": 1.0,
+      "min_tolerance": 0.0,
+      "_why": "Every run must produce schema-valid output. A crash is never within noise."
+    },
+    "suspect_sha": {
+      "direction": "higher",
+      "floor": 0.55,
+      "min_tolerance": 0.05,
+      "_why": "Headline accuracy: did it name the commit that actually caused the incident."
+    },
+    "explanation": {
+      "direction": "higher",
+      "floor": 0.45,
+      "min_tolerance": 0.05,
+      "_why": "Naming the right commit for the wrong reason is not a triage report."
+    },
+    "owner": {
+      "direction": "higher",
+      "floor": 0.40,
+      "min_tolerance": 0.08,
+      "_why": "Routing matters on-call. Looser band: owner attribution is noisier than SHA."
+    },
+    "brier": {
+      "direction": "lower",
+      "ceiling": 0.25,
+      "min_tolerance": 0.03,
+      "_why": "0.25 is what always guessing 50% scores. Worse than that and the confidence field is noise."
+    },
+    "ece": {
+      "direction": "lower",
+      "ceiling": 0.20,
+      "min_tolerance": 0.05,
+      "_why": "Keeps a stated 90% roughly meaning 90%. Catches overconfidence that accuracy alone misses."
+    }
+  }
+}
