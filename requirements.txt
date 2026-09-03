@@ -1,2 +1,4 @@
-pydantic>=2.7
-python-dotenv>=1.0
+# Compatible-release pins. This repo's premise is that results reproduce, so
+# leaving the dependency set free to drift under a `>=` would undercut it.
+pydantic~=2.13.5
+python-dotenv~=1.2.3

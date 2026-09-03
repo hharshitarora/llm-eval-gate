@@ -1,4 +1,6 @@
 -r requirements.txt
-langchain-openai>=0.2
-langchain-core>=0.3
-tenacity>=8.2
+# Only needed for --judge llm and --adapter triage. Kept out of the default
+# install so the hermetic path cannot quietly grow an LLM dependency.
+langchain-openai~=1.6.0
+langchain-core~=1.6.1
+tenacity~=9.1.4
