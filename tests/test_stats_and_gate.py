@@ -139,3 +139,28 @@ def test_metric_absent_from_run_is_skipped_not_failed():
     verdicts = evaluate(res, None, POLICY)
     assert passed(verdicts)
     assert all("not reported" in v.reason for v in verdicts)
+
+
+# --- baselines are per adapter ----------------------------------------------
+
+def test_baseline_path_is_keyed_by_adapter():
+    """A triage run must never be compared against mock numbers.
+
+    They measure different systems, so the comparison is not noisy, it is
+    meaningless. Keying by adapter makes that mistake unrepresentable rather
+    than something to remember.
+    """
+    from evalgate.cli import baseline_path
+
+    assert baseline_path("mock:good").name == "mock-good.json"
+    assert baseline_path("mock:degraded").name == "mock-degraded.json"
+    assert baseline_path("triage").name == "triage.json"
+    assert baseline_path("mock:good") != baseline_path("triage")
+
+
+def test_baseline_path_survives_awkward_adapter_names():
+    from evalgate.cli import baseline_path
+
+    assert baseline_path("Weird/Name v2").name == "weird-name-v2.json"
+    assert baseline_path("").name == "unknown.json"
+    assert baseline_path("///").name == "unknown.json"

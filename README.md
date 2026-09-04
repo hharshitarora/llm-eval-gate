@@ -40,9 +40,84 @@ Exit code 1, merge blocked, and every failing line says what moved, by how much,
 and how much movement was considered normal.
 
 > These numbers come from the built-in `mock:degraded` profile, a synthetic
-> agent used to prove the gate bites. They are not measurements of the real
-> triage agent. Grading that needs an API key: see [Grading a real
-> agent](#grading-a-real-agent).
+> agent used to prove the gate bites. For the real measurement, see below.
+
+## Pointed at the real agent, it blocks
+
+The whole point of building this was to grade
+[incident-triage-agent](https://github.com/hharshitarora/incident-triage-agent),
+which I also wrote. Six cases, three trials each, `gpt-4o` for the agent and
+`gpt-4o-mini` as judge:
+
+```
+  triage  |  6 cases x 3 trials  |  judge: llm
+  metric           value   verdict
+  completed        1.000   ok    never crashed, always schema-valid
+  suspect_sha      0.333   FAIL  below hard floor 0.550
+  explanation      0.778   ok
+  owner            0.500   ok
+  brier            0.482   FAIL  above hard ceiling 0.250
+  ece              0.511   FAIL  above hard ceiling 0.200
+  latency p50/p95: 6.2s / 8.1s
+```
+
+**It fails its own gate**, and the thresholds have not been moved to fix that.
+Lowering a floor until your agent clears it is the one thing that would make
+this whole repo worthless.
+
+### What the numbers actually say
+
+The interesting part is the gap between `explanation` at 0.778 and `suspect_sha`
+at 0.333. Per case:
+
+| Case | Same-file decoys | Named the culprit | Explained the mechanism |
+|---|---|---|---|
+| `config_keyerror` | 1 | 0.00 | 0.67 |
+| `split_indexerror` | 1 | **1.00** | 1.00 |
+| `none_attributeerror` | 1 | 0.00 | 0.67 |
+| `zero_division` | 1 | 0.00 | **1.00** |
+| `type_error_concat` | 0 | **1.00** | 1.00 |
+| `silent_wrong_total` | 1 | 0.00 | 0.33 |
+
+Look at `zero_division`: a perfect score for describing the mechanism and a zero
+for attribution. The agent read the code correctly, explained exactly why the
+division fails, and then blamed the wrong commit.
+
+So the failure is not comprehension. It is attribution. And the pattern points
+at where: the one case with **no same-file decoy** was solved, while four of the
+five cases that land a later commit on the culprit's own file were not. That is
+consistent with the agent reaching for "the newest edit to the file in the
+traceback", which is exactly the heuristic the decoys were designed to punish.
+With six cases that is a hypothesis, not a finding, and it is the first thing
+more cases would test.
+
+The calibration numbers are the ones that would matter on-call. A Brier of 0.482
+is worse than answering 50% every time, and an ECE of 0.511 means the confidence
+figure is not just imprecise, it is anti-correlated with being right. The agent
+is most confident in exactly the cases it gets wrong. Accuracy alone would never
+have surfaced that.
+
+Judge/oracle kappa is 0.182, which is low, and honestly so: the judge is scoring
+explanations while the oracle scores commit attribution, and this run is a
+demonstration that those two things come apart. A high kappa here would have
+meant one of the two metrics was redundant.
+
+### It found real bugs before it scored anything
+
+Two silent failures in the agent, neither of which raised an error:
+
+1. Traceback paths were never mapped to repo paths. `/srv/app/settings.py` in a
+   crash log is `app/settings.py` in git, so `git log --` matched nothing and
+   exited 0 while doing it. The phase reported success with zero commits and the
+   agent fell back to guessing from the log text.
+2. Every non-zero git exit was labelled "not a git repository", including
+   `detected dubious ownership`, which sends anyone debugging it to the wrong
+   problem entirely.
+
+Both are [fixed
+upstream](https://github.com/hharshitarora/incident-triage-agent) with regression
+tests. The agent's own demo had never caught either, because the demo log
+happened to use paths matching its sandbox.
 
 ## The four things that make it more than a for-loop
 
@@ -169,6 +244,10 @@ python -m evalgate run --adapter triage --judge llm --trials 3
 The harness never imports the system under test. It starts a process, reads a
 JSON object off stdout, and validates it. Pointing this at a different agent is
 [one ~50 line adapter](./evalgate/adapters/triage.py), not a refactor.
+
+Baselines are stored per adapter (, )
+so a real run is never silently compared against mock numbers. Those measure
+different systems, and that comparison is not noisy, it is meaningless.
 
 ## Limitations
 

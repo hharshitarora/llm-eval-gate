@@ -8,13 +8,27 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
 from . import fixtures, gate, report, runner
 
-BASELINE = Path("baselines/baseline.json")
+BASELINE_DIR = Path("baselines")
 LATEST = Path("runs/latest.json")
+
+
+def baseline_path(adapter: str) -> Path:
+    """One baseline per adapter.
+
+    A single shared baseline compares whatever ran last against whatever ran
+    before it, so a `triage` run would be graded against `mock:good` numbers.
+    Those measure different systems, and the comparison is not merely noisy, it
+    is meaningless. Keying by adapter makes cross-system comparison impossible
+    by construction rather than by remembering.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", adapter.lower()).strip("-") or "unknown"
+    return BASELINE_DIR / f"{slug}.json"
 
 
 def _build_adapter(spec: str):
@@ -65,7 +79,8 @@ def _cmd_run(args) -> int:
     )
     runner.save(result, LATEST)
 
-    baseline = runner.load(BASELINE) if BASELINE.exists() else None
+    bpath = baseline_path(result.adapter)
+    baseline = runner.load(bpath) if bpath.exists() else None
     verdicts = gate.evaluate(result, baseline, gate.load_policy())
 
     print(report.summary_console(result, verdicts))
@@ -86,8 +101,9 @@ def _cmd_baseline(args) -> int:
     if not LATEST.exists():
         raise SystemExit("No run to promote. Run: python -m evalgate run")
     result = runner.load(LATEST)
-    runner.save(result, BASELINE)
-    print(f"baseline updated from {result.adapter} -> {BASELINE}")
+    bpath = baseline_path(result.adapter)
+    runner.save(result, bpath)
+    print(f"baseline updated from {result.adapter} -> {bpath}")
     print("Commit it. Moving the baseline is a reviewable act, not a side effect.")
     return 0
 
