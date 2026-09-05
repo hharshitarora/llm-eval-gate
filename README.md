@@ -15,6 +15,29 @@ This is a working answer to that problem, pointed at
 an agent that reads a crash log, walks git history, and names the commit that
 caused the incident.
 
+## How it works
+
+```mermaid
+flowchart LR
+    T["Bug templates"] --> F["Fixture repos<br/>pinned SHAs, byte reproducible"]
+    F --> G[("Golden set<br/>culprit SHA + owner")]
+    G --> A["Adapter<br/>(process boundary)"]
+    A -->|"n trials per case"| R["Runs"]
+    R --> D["Deterministic graders<br/>SHA · owner · schema"]
+    R --> J["LLM judge<br/>explanation only"]
+    D --> C["Calibration<br/>Brier · ECE"]
+    D --> S["Clustered bootstrap<br/>noise band"]
+    J --> S
+    C --> GATE{"Gate"}
+    S --> GATE
+    B[("Committed baseline<br/>per adapter")] --> GATE
+    GATE -->|"drop within noise"| P["pass"]
+    GATE -->|"beyond band, or below floor"| X["block the merge"]
+```
+
+The system under test sits behind a process boundary and is never imported, so
+the same graders work against any agent that can print a JSON object.
+
 ## What it looks like when it fires
 
 ```
