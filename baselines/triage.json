@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-09-05T17:48:38+00:00",
-  "adapter": "mock:good",
-  "judge": "heuristic",
-  "trials": 5,
+  "generated_at": "2026-09-05T17:47:30+00:00",
+  "adapter": "triage",
+  "judge": "llm",
+  "trials": 3,
   "cases": 12,
   "intervals": {
     "suspect_sha": {
-      "point": 0.8,
-      "low": 0.6666666666666666,
-      "high": 0.9166666666666666
+      "point": 0.75,
+      "low": 0.5,
+      "high": 1.0
     },
     "owner": {
-      "point": 0.8,
-      "low": 0.6666666666666666,
-      "high": 0.9166666666666666
+      "point": 0.75,
+      "low": 0.5,
+      "high": 1.0
     },
     "completed": {
       "point": 1.0,
@@ -21,25 +21,25 @@
       "high": 1.0
     },
     "explanation": {
-      "point": 0.8880533333333335,
-      "low": 0.7955328333333334,
-      "high": 0.9616666666666667
+      "point": 0.8611083333333333,
+      "low": 0.6944333333333337,
+      "high": 1.0
     }
   },
   "scalars": {
-    "brier": 0.0351,
-    "ece": 0.1278,
-    "judge_oracle_kappa": 0.6154,
-    "latency_p50_s": 11.679,
-    "latency_p95_s": 14.16,
-    "cost_total_usd": 0.6786
+    "brier": 0.2006,
+    "ece": 0.1444,
+    "judge_oracle_kappa": 0.75,
+    "latency_p50_s": 5.772,
+    "latency_p95_s": 6.161,
+    "cost_total_usd": 0.0
   },
   "per_case": {
     "config_keyerror": {
-      "suspect_sha": 0.8,
-      "owner": 0.8,
+      "suspect_sha": 1.0,
+      "owner": 1.0,
       "completed": 1.0,
-      "explanation": 0.84,
+      "explanation": 1.0,
       "difficulty": "easy"
     },
     "split_indexerror": {
@@ -71,50 +71,50 @@
       "difficulty": "easy"
     },
     "silent_wrong_total": {
-      "suspect_sha": 0.6,
-      "owner": 0.6,
+      "suspect_sha": 0.0,
+      "owner": 0.0,
       "completed": 1.0,
-      "explanation": 0.8,
+      "explanation": 0.333,
       "difficulty": "hard"
     },
     "import_rename": {
-      "suspect_sha": 0.8,
-      "owner": 0.8,
-      "completed": 1.0,
-      "explanation": 0.85,
-      "difficulty": "medium"
-    },
-    "attribute_rename": {
       "suspect_sha": 1.0,
       "owner": 1.0,
       "completed": 1.0,
       "explanation": 1.0,
       "difficulty": "medium"
     },
-    "regex_tightened": {
-      "suspect_sha": 0.6,
-      "owner": 0.6,
+    "attribute_rename": {
+      "suspect_sha": 0.0,
+      "owner": 0.0,
       "completed": 1.0,
-      "explanation": 0.8,
+      "explanation": 0.667,
+      "difficulty": "medium"
+    },
+    "regex_tightened": {
+      "suspect_sha": 1.0,
+      "owner": 1.0,
+      "completed": 1.0,
+      "explanation": 1.0,
       "difficulty": "medium"
     },
     "timezone_naive": {
-      "suspect_sha": 0.2,
-      "owner": 0.2,
+      "suspect_sha": 1.0,
+      "owner": 1.0,
       "completed": 1.0,
-      "explanation": 0.467,
+      "explanation": 1.0,
       "difficulty": "hard"
     },
     "pagination_offset": {
-      "suspect_sha": 0.8,
-      "owner": 0.8,
+      "suspect_sha": 0.0,
+      "owner": 0.0,
       "completed": 1.0,
-      "explanation": 0.9,
+      "explanation": 0.333,
       "difficulty": "medium"
     },
     "recursion_base_case": {
-      "suspect_sha": 0.8,
-      "owner": 0.8,
+      "suspect_sha": 1.0,
+      "owner": 1.0,
       "completed": 1.0,
       "explanation": 1.0,
       "difficulty": "medium"

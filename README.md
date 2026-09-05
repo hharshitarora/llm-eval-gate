@@ -44,18 +44,18 @@ the same graders work against any agent that can print a JSON object.
 ========================================================================
   EVAL GATE: BLOCKED
 ========================================================================
-  mock:degraded  |  6 cases x 5 trials  |  judge: heuristic
+  mock:degraded  |  12 cases x 5 trials  |  judge: heuristic
 ------------------------------------------------------------------------
   metric           value  baseline     band   verdict
   completed        1.000     1.000        -   ok    no regression
-  suspect_sha      0.533         -        -   FAIL  below hard floor 0.550
-  explanation      0.829     0.940    0.184   ok    within noise
-  owner            0.533     0.900    0.267   FAIL  regressed 0.367 against a noise band of 0.267
-  brier            0.327         -        -   FAIL  above hard ceiling 0.250
-  ece              0.327         -        -   FAIL  above hard ceiling 0.200
+  suspect_sha      0.450         -        -   FAIL  below hard floor 0.550
+  explanation      0.762     0.888    0.198   ok    within noise
+  owner            0.450     0.800    0.267   FAIL  regressed 0.350 against a noise band of 0.267
+  brier            0.386     0.035    0.030   FAIL  above hard ceiling 0.250
+  ece              0.405     0.125    0.050   FAIL  above hard ceiling 0.200
 ------------------------------------------------------------------------
-  judge/oracle kappa: 0.225   brier: 0.327   ece: 0.327
-  latency p50/p95: 9.5s / 11.7s   cost: $0.2857
+  judge/oracle kappa: 0.310   brier: 0.386   ece: 0.405
+  latency p50/p95: 9.3s / 12.5s   cost: $0.5640
 ========================================================================
 ```
 
@@ -65,82 +65,115 @@ and how much movement was considered normal.
 > These numbers come from the built-in `mock:degraded` profile, a synthetic
 > agent used to prove the gate bites. For the real measurement, see below.
 
-## Pointed at the real agent, it blocks
+## The whole point: it found a real regression in a real agent
 
-The whole point of building this was to grade
+This exists to grade
 [incident-triage-agent](https://github.com/hharshitarora/incident-triage-agent),
-which I also wrote. Six cases, three trials each, `gpt-4o` for the agent and
-`gpt-4o-mini` as judge:
+which I also wrote. Twelve cases, three trials each, `gpt-4o` for the agent and
+`gpt-4o-mini` as judge.
+
+**First run. Blocked.**
 
 ```
-  triage  |  6 cases x 3 trials  |  judge: llm
   metric           value   verdict
-  completed        1.000   ok    never crashed, always schema-valid
-  suspect_sha      0.333   FAIL  below hard floor 0.550
+  completed        1.000   ok
+  suspect_sha      0.417   FAIL  below hard floor 0.550
   explanation      0.778   ok
-  owner            0.500   ok
-  brier            0.482   FAIL  above hard ceiling 0.250
-  ece              0.511   FAIL  above hard ceiling 0.200
-  latency p50/p95: 6.2s / 8.1s
+  owner            0.583   ok
+  brier            0.418   FAIL  worse than answering 50% every time
+  ece              0.439   FAIL  above hard ceiling 0.200
 ```
 
-**It fails its own gate**, and the thresholds have not been moved to fix that.
-Lowering a floor until your agent clears it is the one thing that would make
-this whole repo worthless.
+The gap between `explanation` 0.778 and `suspect_sha` 0.417 was the clue. The
+agent kept describing the right mechanism and naming the wrong commit, so the
+failure was not comprehension. It was attribution.
 
-### What the numbers actually say
+**The cause.** `git_history` ranked candidate commits by date and attached diffs
+to the two most recent. The report prompt says *"when a suspect commit includes a
+diff, cite the exact change that introduced the bug"*. So whenever any trivial
+change landed after the real regression, the culprit's diff was never shown at
+all:
 
-The interesting part is the gap between `explanation` at 0.778 and `suspect_sha`
-at 0.333. Per case:
+```
+sha           date        has diff  summary
+fdd5dd6b1e    2026-01-05  YES       Bump retries for the worker pool
+ebd2f15834    2026-01-04  YES       Document settings defaults
+f1f6483e59    2026-01-02  no        Simplify settings access   <- the culprit
+```
 
-| Case | Same-file decoys | Named the culprit | Explained the mechanism |
-|---|---|---|---|
-| `config_keyerror` | 1 | 0.00 | 0.67 |
-| `split_indexerror` | 1 | **1.00** | 1.00 |
-| `none_attributeerror` | 1 | 0.00 | 0.67 |
-| `zero_division` | 1 | 0.00 | **1.00** |
-| `type_error_concat` | 0 | **1.00** | 1.00 |
-| `silent_wrong_total` | 1 | 0.00 | 0.33 |
+It was not reasoning badly. It was choosing from the wrong shortlist.
 
-Look at `zero_division`: a perfect score for describing the mechanism and a zero
-for attribution. The agent read the code correctly, explained exactly why the
-division fails, and then blamed the wrong commit.
+**After ranking by relevance instead of recency.** Same suite, same models.
 
-So the failure is not comprehension. It is attribution. And the pattern points
-at where: the one case with **no same-file decoy** was solved, while four of the
-five cases that land a later commit on the culprit's own file were not. That is
-consistent with the agent reaching for "the newest edit to the file in the
-traceback", which is exactly the heuristic the decoys were designed to punish.
-With six cases that is a hypothesis, not a finding, and it is the first thing
-more cases would test.
+| Metric | Before | After |
+|---|---|---|
+| `suspect_sha` | 0.417 | **0.750** |
+| `explanation` | 0.778 | 0.861 |
+| `owner` | 0.583 | 0.750 |
+| `brier` | 0.418 | **0.201** |
+| `ece` | 0.439 | **0.144** |
+| judge/oracle κ | 0.250 | 0.750 |
+| latency p95 | 8.2s | 6.2s |
 
-The calibration numbers are the ones that would matter on-call. A Brier of 0.482
-is worse than answering 50% every time, and an ECE of 0.511 means the confidence
-figure is not just imprecise, it is anti-correlated with being right. The agent
-is most confident in exactly the cases it gets wrong. Accuracy alone would never
-have surfaced that.
+Gate passes. Four cases flipped from zero to solved: `config_keyerror`,
+`none_attributeerror`, `zero_division`, `recursion_base_case`.
 
-Judge/oracle kappa is 0.182, which is low, and honestly so: the judge is scoring
-explanations while the oracle scores commit attribution, and this run is a
-demonstration that those two things come apart. A high kappa here would have
-meant one of the two metrics was redundant.
+### The calibration result is the interesting one
 
-### It found real bugs before it scored anything
+ECE fell from 0.439 to 0.144 and Brier from 0.418 to 0.201, and **nothing about
+confidence was touched**. Not the prompt, not a threshold, not a post-hoc
+adjustment.
 
-Two silent failures in the agent, neither of which raised an error:
+The agent was never badly calibrated in the way that phrase usually means. It was
+confidently wrong for a specific, findable reason, and once it could see the
+evidence its confidence became warranted. Judge/oracle kappa tripling to 0.750
+says the same thing from the other side: explanation quality and attribution
+now move together, because both were downstream of the same missing diff.
 
-1. Traceback paths were never mapped to repo paths. `/srv/app/settings.py` in a
-   crash log is `app/settings.py` in git, so `git log --` matched nothing and
-   exited 0 while doing it. The phase reported success with zero commits and the
-   agent fell back to guessing from the log text.
-2. Every non-zero git exit was labelled "not a git repository", including
-   `detected dubious ownership`, which sends anyone debugging it to the wrong
-   problem entirely.
+An accuracy-only gate would have flagged the accuracy and told you nothing about
+why. The calibration metrics are what made the failure legible.
 
-Both are [fixed
-upstream](https://github.com/hharshitarora/incident-triage-agent) with regression
-tests. The agent's own demo had never caught either, because the demo log
-happened to use paths matching its sandbox.
+### What still fails, and it is not random
+
+| | Solved |
+|---|---|
+| Traceback names the culprit file (8 cases) | **8 / 8** |
+| It does not (4 cases) | **1 / 4** |
+
+All three remaining failures are cases where the log never names the file that
+changed: `silent_wrong_total` and `pagination_offset` have no traceback at all,
+only a wrong number, and `attribute_rename` raises in the code that *read* the
+attribute rather than the module defining it.
+
+That is a clean statement of the ceiling. The agent can follow a traceback to a
+commit; it cannot yet reason from a symbol to the module that defines it. That is
+the next piece of work, and it is only nameable because the suite separates those
+cases deliberately.
+
+**Caveat, stated rather than buried:** the ranking weights were tuned against the
+same twelve cases they are scored on. Every rule is a general claim about what
+regressions look like (creations are not regressions, deletions matter, the
+raising file matters) rather than a patch for a specific case, but that is a
+mitigation, not a defence. It is the weakest part of the result.
+
+### It also found three silent bugs before scoring anything
+
+None raised an error. The agent returned a confident, well-written report every
+time and had simply lost its evidence on the way there.
+
+1. **Traceback paths were never mapped to repo paths.** `/srv/app/settings.py` in
+   a crash log is `app/settings.py` in git, so `git log --` matched nothing and
+   exited 0 while doing it.
+2. **Every non-zero git exit was labelled "not a git repository"**, including
+   `detected dubious ownership`, which sends whoever is debugging to the wrong
+   problem.
+3. **The demo builder crashed on every re-run on Windows**, leaving a
+   half-deleted sandbox that was no longer a git repo. Because that directory
+   sits inside the agent's own repo, `rev-parse --is-inside-work-tree` succeeded
+   against the *parent*, so the agent silently investigated the wrong project.
+   The README's headline example had stopped working with no explanation.
+
+All fixed upstream with regression tests.
 
 ## The four things that make it more than a for-loop
 
@@ -155,12 +188,18 @@ pinned per commit, global gitconfig is ignored, and line endings are forced, so
 every machine produces the same SHAs:
 
 ```
-config_keyerror        easy   culprit=f1f6483e59 owner=Dana Lee        decoys_after=3 (same-file=1)
-split_indexerror       medium culprit=ae5b84ea25 owner=Tom Vance       decoys_after=3 (same-file=1)
-none_attributeerror    medium culprit=363c5aaa9e owner=Sofia Klein     decoys_after=2 (same-file=1)
-zero_division          medium culprit=e99dd2e745 owner=Elena Duarte    decoys_after=3 (same-file=1)
-type_error_concat      easy   culprit=f095179388 owner=Nils Berger     decoys_after=2 (same-file=0)
-silent_wrong_total     hard   culprit=dcb3be7233 owner=Grace Oyelaran  decoys_after=3 (same-file=1)
+config_keyerror        easy   culprit=f1f6483e59 owner=Dana Lee         decoys_after=3 (same-file=1)
+split_indexerror       medium culprit=ae5b84ea25 owner=Tom Vance        decoys_after=3 (same-file=1)
+none_attributeerror    medium culprit=363c5aaa9e owner=Sofia Klein      decoys_after=2 (same-file=1)
+zero_division          medium culprit=e99dd2e745 owner=Elena Duarte     decoys_after=3 (same-file=1)
+type_error_concat      easy   culprit=f095179388 owner=Nils Berger      decoys_after=2 (same-file=0)
+silent_wrong_total     hard   culprit=dcb3be7233 owner=Grace Oyelaran   decoys_after=3 (same-file=1)
+import_rename          medium culprit=e0a77bcc02 owner=Ines Duarte      decoys_after=3 (same-file=0)
+attribute_rename       medium culprit=233f3b414c owner=Lena Fischer     decoys_after=2 (same-file=0)
+regex_tightened        medium culprit=98aee058b7 owner=Petra Nowak      decoys_after=2 (same-file=1)
+timezone_naive         hard   culprit=aed2ab0e97 owner=Marta Oliveira   decoys_after=2 (same-file=1)
+pagination_offset      medium culprit=8581906fad owner=Aoife Brennan    decoys_after=3 (same-file=0)
+recursion_base_case    medium culprit=523f07949f owner=Bea Lindgren     decoys_after=2 (same-file=1)
 ```
 
 CI rebuilds them and fails if a single SHA drifts, because the moment ground
@@ -210,7 +249,7 @@ the number prints on every run. Kappa rather than raw agreement on purpose: when
 85% of runs are correct, a judge that says "correct" every time scores 85% raw
 agreement while being worthless. Kappa scores it 0.
 
-The heuristic judge in the run above scores κ ≈ 0.47. That is moderate, not
+The heuristic judge in the mock run above scores κ ≈ 0.31. That is poor, not
 good, and it is reported rather than buried, because a judge you cannot trust is
 a metric you cannot gate on.
 
@@ -276,11 +315,12 @@ different systems, and that comparison is not noisy, it is meaningless.
 
 Stated plainly, because a gate you have wrong confidence in is worse than none.
 
-- **Six cases is a small set.** The clustered bootstrap correctly reports a wide
-  band (≈0.27 on accuracy), which means the *relative* check only catches large
-  regressions today and the absolute floors are doing most of the work. That is
-  the honest reading of six cases. More cases narrow the band, and adding one is
-  appending a template.
+- **Twelve cases is still a small set.** The clustered bootstrap reports a band
+  of about 0.13 on accuracy, so the *relative* check only catches large
+  regressions and the absolute floors do most of the work. Doubling the suite
+  from six to twelve is what let the decoy hypothesis be tested and rejected, so
+  the next doubling is worth more than it sounds. Adding a case is appending a
+  template.
 - **Synthetic bugs are not production bugs.** They are clean, single commit, and
   Python. Real incidents are messier.
 - **The heuristic judge is a proxy.** It measures salient-term recall and cannot
