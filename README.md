@@ -15,6 +15,12 @@ This is a working answer to that problem, pointed at
 an agent that reads a crash log, walks git history, and names the commit that
 caused the incident.
 
+![demo](docs/demo.gif)
+
+Same suite, two agents. The healthy one passes and exits 0; a synthetic quality
+drop is blocked with exit 1, and every failing line says what moved and how much
+movement counted as normal.
+
 ## How it works
 
 ```mermaid
