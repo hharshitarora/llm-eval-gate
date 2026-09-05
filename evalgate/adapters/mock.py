@@ -22,16 +22,29 @@ from ..types import AgentOutput, GoldenCase, RunResult
 # P(correct suspect commit) by difficulty, per profile.
 _ACCURACY = {
     "good": {"easy": 0.97, "medium": 0.88, "hard": 0.55},
-    "degraded": {"easy": 0.80, "medium": 0.55, "hard": 0.25},
+    # Clearly below the suspect_sha floor on any mix of difficulties, so the
+    # regression is caught by accuracy as well as by calibration.
+    "degraded": {"easy": 0.70, "medium": 0.45, "hard": 0.20},
 }
 
-# Mean stated confidence when right vs wrong. The degraded profile keeps its
-# confidence high while being wrong more often, so calibration decays too --
-# which is exactly the failure mode a pure accuracy check would miss.
-_CONFIDENCE = {
-    "good": {"right": 0.86, "wrong": 0.48},
-    "degraded": {"right": 0.88, "wrong": 0.83},
-}
+# How stated confidence relates to being right.
+#
+# The good profile is calibrated *by construction*. For a case it gets right
+# with probability p, it says p + (1-p)k when right and p - pk when wrong, whose
+# mean is exactly p for any spread k. So confidence still discriminates (higher
+# when it is right) while the average confidence in a bin matches the accuracy
+# in that bin, which is what calibration means.
+#
+# Getting this wrong is not academic: the first version used flat confidences
+# regardless of difficulty, and once the suite grew to include two hard cases
+# the reference "good" agent tripped the ECE ceiling. A healthy fixture must be
+# healthy on every axis the gate measures, or it fails the gate for reasons that
+# say nothing about the gate.
+_CONFIDENCE_SPREAD = 0.5
+
+# The degraded profile stays confident while being wrong, on purpose. That is
+# the failure a pure accuracy check misses.
+_DEGRADED_CONFIDENCE = {"right": 0.88, "wrong": 0.83}
 
 _COST_PER_CASE = {"good": 0.0112, "degraded": 0.0094}
 _LATENCY_S = {"good": 11.4, "degraded": 9.8}
@@ -59,9 +72,12 @@ class MockAdapter:
         p_correct = _ACCURACY[self.profile][case.difficulty]
         correct = rng.random() < p_correct
 
-        bucket = "right" if correct else "wrong"
-        mean_conf = _CONFIDENCE[self.profile][bucket]
-        confidence = min(0.99, max(0.01, rng.gauss(mean_conf, 0.06)))
+        if self.profile == "good":
+            k = _CONFIDENCE_SPREAD
+            mean_conf = p_correct + (1 - p_correct) * k if correct else p_correct - p_correct * k
+        else:
+            mean_conf = _DEGRADED_CONFIDENCE["right" if correct else "wrong"]
+        confidence = min(0.99, max(0.01, rng.gauss(mean_conf, 0.04)))
 
         if correct:
             sha = case.culprit_sha

@@ -29,7 +29,7 @@ def test_different_trials_differ():
 
 def test_suite_runs_and_reports_every_metric():
     result = runner.run_suite(MockAdapter("good"), trials=3, judge="heuristic", cases=_cases())
-    assert result.cases == 6
+    assert result.cases == 12
     for key in ("suspect_sha", "owner", "completed", "explanation"):
         assert key in result.intervals
     for key in ("brier", "ece", "judge_oracle_kappa", "latency_p50_s", "cost_total_usd"):

@@ -25,7 +25,12 @@ import sys
 from pathlib import Path
 
 from .templates import ALL_TEMPLATES, Template
+from .templates_extra import EXTRA_TEMPLATES
 from .types import GoldenCase
+
+# The full suite. Kept in two modules only because one 700-line file of test
+# fixtures is harder to review than two.
+TEMPLATES: tuple[Template, ...] = ALL_TEMPLATES + EXTRA_TEMPLATES
 
 SANDBOX = Path(".sandbox")
 DATASET = Path("datasets/golden/cases.jsonl")
@@ -156,7 +161,7 @@ def build_template(tpl: Template, root: Path = SANDBOX) -> GoldenCase:
 
 def build_all(root: Path = SANDBOX) -> list[GoldenCase]:
     root.mkdir(parents=True, exist_ok=True)
-    return [build_template(t, root) for t in ALL_TEMPLATES]
+    return [build_template(t, root) for t in TEMPLATES]
 
 
 def write_dataset(cases: list[GoldenCase], path: Path = DATASET) -> None:

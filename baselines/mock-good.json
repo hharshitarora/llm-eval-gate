@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-09-02T03:25:38+00:00",
+  "generated_at": "2026-09-05T17:30:37+00:00",
   "adapter": "mock:good",
   "judge": "heuristic",
   "trials": 5,
-  "cases": 6,
+  "cases": 12,
   "intervals": {
     "suspect_sha": {
-      "point": 0.9,
-      "low": 0.7666666666666667,
-      "high": 1.0
+      "point": 0.8,
+      "low": 0.6666666666666666,
+      "high": 0.9166666666666666
     },
     "owner": {
-      "point": 0.9,
-      "low": 0.7666666666666667,
-      "high": 1.0
+      "point": 0.8,
+      "low": 0.6666666666666666,
+      "high": 0.9166666666666666
     },
     "completed": {
       "point": 1.0,
@@ -21,18 +21,18 @@
       "high": 1.0
     },
     "explanation": {
-      "point": 0.94,
-      "low": 0.8733333333333333,
-      "high": 1.0
+      "point": 0.8880533333333335,
+      "low": 0.7955328333333334,
+      "high": 0.9616666666666667
     }
   },
   "scalars": {
-    "brier": 0.0449,
-    "ece": 0.1672,
-    "judge_oracle_kappa": 0.4737,
-    "latency_p50_s": 11.602,
-    "latency_p95_s": 14.197,
-    "cost_total_usd": 0.3502
+    "brier": 0.0351,
+    "ece": 0.1278,
+    "judge_oracle_kappa": 0.6154,
+    "latency_p50_s": 11.679,
+    "latency_p95_s": 14.16,
+    "cost_total_usd": 0.6786
   },
   "per_case": {
     "config_keyerror": {
@@ -76,6 +76,48 @@
       "completed": 1.0,
       "explanation": 0.8,
       "difficulty": "hard"
+    },
+    "import_rename": {
+      "suspect_sha": 0.8,
+      "owner": 0.8,
+      "completed": 1.0,
+      "explanation": 0.85,
+      "difficulty": "medium"
+    },
+    "attribute_rename": {
+      "suspect_sha": 1.0,
+      "owner": 1.0,
+      "completed": 1.0,
+      "explanation": 1.0,
+      "difficulty": "medium"
+    },
+    "regex_tightened": {
+      "suspect_sha": 0.6,
+      "owner": 0.6,
+      "completed": 1.0,
+      "explanation": 0.8,
+      "difficulty": "medium"
+    },
+    "timezone_naive": {
+      "suspect_sha": 0.2,
+      "owner": 0.2,
+      "completed": 1.0,
+      "explanation": 0.467,
+      "difficulty": "hard"
+    },
+    "pagination_offset": {
+      "suspect_sha": 0.8,
+      "owner": 0.8,
+      "completed": 1.0,
+      "explanation": 0.9,
+      "difficulty": "medium"
+    },
+    "recursion_base_case": {
+      "suspect_sha": 0.8,
+      "owner": 0.8,
+      "completed": 1.0,
+      "explanation": 1.0,
+      "difficulty": "medium"
     }
   },
   "failures": []

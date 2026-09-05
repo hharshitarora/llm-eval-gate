@@ -6,12 +6,13 @@ would be invisible without this file.
 """
 from __future__ import annotations
 
+import re
 import shutil
 
 import pytest
 
 from evalgate import fixtures
-from evalgate.templates import ALL_TEMPLATES
+from evalgate.fixtures import TEMPLATES
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +44,7 @@ def test_rebuild_is_byte_identical(tmp_path):
 
 
 def test_every_template_has_exactly_one_culprit():
-    for tpl in ALL_TEMPLATES:
+    for tpl in TEMPLATES:
         culprits = [c for c in tpl.commits if c.is_culprit]
         assert len(culprits) == 1, f"{tpl.name} has {len(culprits)} culprit commits"
 
@@ -65,27 +66,51 @@ def test_most_cases_defeat_blame_latest_edit(built):
     """
     _, cases = built
     with_same_file = [c for c in cases.values() if c.decoys_same_file > 0]
-    assert len(with_same_file) >= 4, "too few cases resist the newest-edit heuristic"
+    assert len(with_same_file) >= 6, "too few cases resist the newest-edit heuristic"
+    without = [c for c in cases.values() if c.decoys_same_file == 0]
+    assert len(without) >= 3, (
+        "need several cases WITHOUT a same-file decoy as a control group, or "
+        "'the agent blames the newest edit to the file' cannot be told apart "
+        "from 'the agent is just wrong'"
+    )
 
 
 def _log_for(root, case) -> str:
     return (root / f"{case.template}.log").read_text(encoding="utf-8")
 
 
+_SYMBOL = re.compile(r"^\s*(?:class|def)\s+([A-Za-z_][A-Za-z0-9_]*)", re.M)
+
+
 def test_every_log_anchors_somewhere_in_the_repo(built):
     """A case with no legitimate starting point is not hard, it is unfair.
 
-    Every log has to name at least the package the bug lives in, or the agent is
-    being asked to guess rather than investigate.
+    Two kinds of anchor count, because real tracebacks provide both:
+
+      * the package path, when the frame is in the file that changed
+      * a symbol defined in the changed file, when it is not. An AttributeError
+        names the code that *read* the attribute, never the module where the
+        class lives, so `attribute_rename` is anchored only by the word `User`
+        appearing both in the error and in `class User`.
+
+    Requiring the path alone would have rejected a perfectly fair case.
     """
     root, cases = built
     for case_id, case in cases.items():
         log = _log_for(root, case)
         packages = {f.split("/")[0] for f in case.culprit_files}
-        assert any(p in log for p in packages), f"{case_id}: log never mentions {packages}"
+        if any(p in log for p in packages):
+            continue
+        symbols = set()
+        for rel in case.culprit_files:
+            source = (root / case.template / rel).read_text(encoding="utf-8")
+            symbols.update(_SYMBOL.findall(source))
+        assert symbols & set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", log)), (
+            f"{case_id}: log mentions neither {packages} nor any symbol from {case.culprit_files}"
+        )
 
 
-def test_exactly_one_case_requires_an_indirect_hop(built):
+def test_some_cases_require_an_indirect_hop(built):
     """The difficulty gradient, asserted rather than assumed.
 
     Most logs name the culprit file outright, so the work is choosing between
@@ -102,8 +127,21 @@ def test_exactly_one_case_requires_an_indirect_hop(built):
         if not any(s in log for s in stems):
             indirect.append(case_id)
 
-    assert indirect == ["silent_wrong_total"], f"unexpected indirect cases: {indirect}"
-    assert cases[indirect[0]].difficulty == "hard"
+    expected = ["attribute_rename", "import_rename", "pagination_offset", "silent_wrong_total"]
+    assert sorted(indirect) == expected, (
+        f"unexpected indirect cases: {indirect}"
+    )
+    # Four, each indirect for a different and realistic reason:
+    #   silent_wrong_total, pagination_offset : no traceback at all, just a wrong
+    #       number, so nothing names any file
+    #   attribute_rename : an AttributeError names the code that *read* the
+    #       attribute, never the module defining the class
+    #   import_rename    : the log carries the dotted module "store.inventory",
+    #       not the path "inventory.py"
+    # A third of the suite being indirect is deliberate. Fewer and the set would
+    # overstate how often a traceback hands you the answer; many more and every
+    # case would be measuring the same skill.
+    assert len(indirect) < len(cases) / 2
 
 
 def test_difficulty_values_are_known(built):
