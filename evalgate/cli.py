@@ -27,6 +27,11 @@ def baseline_path(adapter: str) -> Path:
     is meaningless. Keying by adapter makes cross-system comparison impossible
     by construction rather than by remembering.
     """
+    # Every mock profile is the same simulated agent at a different quality, so
+    # they share the healthy baseline. That is what makes mock:degraded a
+    # regression to measure rather than a new system with nothing to compare to.
+    if adapter.lower().startswith("mock"):
+        adapter = "mock:good"
     slug = re.sub(r"[^a-z0-9]+", "-", adapter.lower()).strip("-") or "unknown"
     return BASELINE_DIR / f"{slug}.json"
 

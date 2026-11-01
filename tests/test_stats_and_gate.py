@@ -153,9 +153,20 @@ def test_baseline_path_is_keyed_by_adapter():
     from evalgate.cli import baseline_path
 
     assert baseline_path("mock:good").name == "mock-good.json"
-    assert baseline_path("mock:degraded").name == "mock-degraded.json"
     assert baseline_path("triage").name == "triage.json"
     assert baseline_path("mock:good") != baseline_path("triage")
+
+
+def test_degraded_mock_is_graded_against_the_healthy_baseline():
+    """mock:degraded is the healthy mock after a bad change, not a new system.
+
+    Keyed separately it had no baseline at all, so only the hard floors ever
+    blocked it and the relative-regression check, the gate's core idea, was
+    never exercised by anything runnable.
+    """
+    from evalgate.cli import baseline_path
+
+    assert baseline_path("mock:degraded") == baseline_path("mock:good")
 
 
 def test_baseline_path_survives_awkward_adapter_names():

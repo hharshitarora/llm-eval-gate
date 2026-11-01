@@ -55,10 +55,10 @@ the same graders work against any agent that can print a JSON object.
   metric           value  baseline     band   verdict
   completed        1.000     1.000        -   ok    no regression
   suspect_sha      0.450         -        -   FAIL  below hard floor 0.550
-  explanation      0.762     0.888    0.198   ok    within noise
-  owner            0.450     0.800    0.267   FAIL  regressed 0.350 against a noise band of 0.267
-  brier            0.386     0.035    0.030   FAIL  above hard ceiling 0.250
-  ece              0.405     0.125    0.050   FAIL  above hard ceiling 0.200
+  explanation      0.762     0.888    0.191   ok    within noise
+  owner            0.450     0.800    0.250   FAIL  regressed 0.350 against a noise band of 0.250
+  brier            0.386         -        -   FAIL  above hard ceiling 0.250
+  ece              0.405         -        -   FAIL  above hard ceiling 0.200
 ------------------------------------------------------------------------
   judge/oracle kappa: 0.310   brier: 0.386   ece: 0.405
   latency p50/p95: 9.3s / 12.5s   cost: $0.5640
@@ -313,7 +313,7 @@ The harness never imports the system under test. It starts a process, reads a
 JSON object off stdout, and validates it. Pointing this at a different agent is
 [one ~50 line adapter](./evalgate/adapters/triage.py), not a refactor.
 
-Baselines are stored per adapter (, )
+Baselines are stored per adapter (`baselines/triage.json`, `baselines/mock-good.json`)
 so a real run is never silently compared against mock numbers. Those measure
 different systems, and that comparison is not noisy, it is meaningless.
 
