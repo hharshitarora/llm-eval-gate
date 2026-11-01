@@ -313,6 +313,10 @@ The harness never imports the system under test. It starts a process, reads a
 JSON object off stdout, and validates it. Pointing this at a different agent is
 [one ~50 line adapter](./evalgate/adapters/triage.py), not a refactor.
 
+The agent's process inherits this repo's environment, so the `OPENAI_API_KEY`
+in this `.env` is the one the agent uses, not the one in its own `.env`. If
+every trial fails with an authentication error, check this key first.
+
 Baselines are stored per adapter (`baselines/triage.json`, `baselines/mock-good.json`)
 so a real run is never silently compared against mock numbers. Those measure
 different systems, and that comparison is not noisy, it is meaningless.
