@@ -1,0 +1,772 @@
+{
+ "policy": {
+  "_comment": "Merge policy. Reviewed like code, because it is the definition of 'good enough to ship'.",
+  "metrics": {
+   "completed": {
+    "direction": "higher",
+    "floor": 1.0,
+    "min_tolerance": 0.0,
+    "_why": "Every run must produce schema-valid output. A crash is never within noise."
+   },
+   "suspect_sha": {
+    "direction": "higher",
+    "floor": 0.55,
+    "min_tolerance": 0.05,
+    "_why": "Headline accuracy: did it name the commit that actually caused the incident."
+   },
+   "explanation": {
+    "direction": "higher",
+    "floor": 0.45,
+    "min_tolerance": 0.05,
+    "_why": "Naming the right commit for the wrong reason is not a triage report."
+   },
+   "owner": {
+    "direction": "higher",
+    "floor": 0.4,
+    "min_tolerance": 0.08,
+    "_why": "Routing matters on-call. Looser band: owner attribution is noisier than SHA."
+   },
+   "brier": {
+    "direction": "lower",
+    "ceiling": 0.25,
+    "min_tolerance": 0.03,
+    "_why": "0.25 is what always guessing 50% scores. Worse than that and the confidence field is noise."
+   },
+   "ece": {
+    "direction": "lower",
+    "ceiling": 0.2,
+    "min_tolerance": 0.05,
+    "_why": "Keeps a stated 90% roughly meaning 90%. Catches overconfidence that accuracy alone misses."
+   }
+  }
+ },
+ "sept": {
+  "generated_at": "2026-09-05T17:47:30+00:00",
+  "adapter": "triage",
+  "judge": "llm",
+  "trials": 3,
+  "cases": 12,
+  "intervals": {
+   "suspect_sha": {
+    "point": 0.75,
+    "low": 0.5,
+    "high": 1.0
+   },
+   "owner": {
+    "point": 0.75,
+    "low": 0.5,
+    "high": 1.0
+   },
+   "completed": {
+    "point": 1.0,
+    "low": 1.0,
+    "high": 1.0
+   },
+   "explanation": {
+    "point": 0.8611083333333333,
+    "low": 0.6944333333333337,
+    "high": 1.0
+   }
+  },
+  "scalars": {
+   "brier": 0.2006,
+   "ece": 0.1444,
+   "judge_oracle_kappa": 0.75,
+   "latency_p50_s": 5.772,
+   "latency_p95_s": 6.161,
+   "cost_total_usd": 0.0
+  },
+  "per_case": {
+   "config_keyerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "easy"
+   },
+   "split_indexerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "none_attributeerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "zero_division": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "type_error_concat": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "easy"
+   },
+   "silent_wrong_total": {
+    "suspect_sha": 0.0,
+    "owner": 0.0,
+    "completed": 1.0,
+    "explanation": 0.333,
+    "difficulty": "hard"
+   },
+   "import_rename": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "attribute_rename": {
+    "suspect_sha": 0.0,
+    "owner": 0.0,
+    "completed": 1.0,
+    "explanation": 0.667,
+    "difficulty": "medium"
+   },
+   "regex_tightened": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "timezone_naive": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "hard"
+   },
+   "pagination_offset": {
+    "suspect_sha": 0.0,
+    "owner": 0.0,
+    "completed": 1.0,
+    "explanation": 0.333,
+    "difficulty": "medium"
+   },
+   "recursion_base_case": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   }
+  },
+  "failures": []
+ },
+ "nov": {
+  "generated_at": "2026-11-01T17:14:15+00:00",
+  "adapter": "triage",
+  "judge": "llm",
+  "trials": 3,
+  "cases": 12,
+  "intervals": {
+   "suspect_sha": {
+    "point": 0.8333333333333334,
+    "low": 0.5833333333333334,
+    "high": 1.0
+   },
+   "owner": {
+    "point": 0.8333333333333334,
+    "low": 0.5833333333333334,
+    "high": 1.0
+   },
+   "completed": {
+    "point": 1.0,
+    "low": 1.0,
+    "high": 1.0
+   },
+   "explanation": {
+    "point": 0.8611083333333335,
+    "low": 0.6944333333333336,
+    "high": 1.0
+   }
+  },
+  "scalars": {
+   "brier": 0.1339,
+   "ece": 0.0611,
+   "judge_oracle_kappa": 1.0,
+   "latency_p50_s": 5.732,
+   "latency_p95_s": 6.428,
+   "cost_total_usd": 0.0
+  },
+  "per_case": {
+   "config_keyerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 0.667,
+    "difficulty": "easy"
+   },
+   "split_indexerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "none_attributeerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "zero_division": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "type_error_concat": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "easy"
+   },
+   "silent_wrong_total": {
+    "suspect_sha": 0.0,
+    "owner": 0.0,
+    "completed": 1.0,
+    "explanation": 0.333,
+    "difficulty": "hard"
+   },
+   "import_rename": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "attribute_rename": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "regex_tightened": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "timezone_naive": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "hard"
+   },
+   "pagination_offset": {
+    "suspect_sha": 0.0,
+    "owner": 0.0,
+    "completed": 1.0,
+    "explanation": 0.333,
+    "difficulty": "medium"
+   },
+   "recursion_base_case": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   }
+  },
+  "failures": []
+ },
+ "mock_base": {
+  "generated_at": "2026-09-05T17:48:38+00:00",
+  "adapter": "mock:good",
+  "judge": "heuristic",
+  "trials": 5,
+  "cases": 12,
+  "intervals": {
+   "suspect_sha": {
+    "point": 0.8,
+    "low": 0.6666666666666666,
+    "high": 0.9166666666666666
+   },
+   "owner": {
+    "point": 0.8,
+    "low": 0.6666666666666666,
+    "high": 0.9166666666666666
+   },
+   "completed": {
+    "point": 1.0,
+    "low": 1.0,
+    "high": 1.0
+   },
+   "explanation": {
+    "point": 0.8880533333333335,
+    "low": 0.7955328333333334,
+    "high": 0.9616666666666667
+   }
+  },
+  "scalars": {
+   "brier": 0.0351,
+   "ece": 0.1278,
+   "judge_oracle_kappa": 0.6154,
+   "latency_p50_s": 11.679,
+   "latency_p95_s": 14.16,
+   "cost_total_usd": 0.6786
+  },
+  "per_case": {
+   "config_keyerror": {
+    "suspect_sha": 0.8,
+    "owner": 0.8,
+    "completed": 1.0,
+    "explanation": 0.84,
+    "difficulty": "easy"
+   },
+   "split_indexerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "none_attributeerror": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "zero_division": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "type_error_concat": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "easy"
+   },
+   "silent_wrong_total": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 0.8,
+    "difficulty": "hard"
+   },
+   "import_rename": {
+    "suspect_sha": 0.8,
+    "owner": 0.8,
+    "completed": 1.0,
+    "explanation": 0.85,
+    "difficulty": "medium"
+   },
+   "attribute_rename": {
+    "suspect_sha": 1.0,
+    "owner": 1.0,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "regex_tightened": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 0.8,
+    "difficulty": "medium"
+   },
+   "timezone_naive": {
+    "suspect_sha": 0.2,
+    "owner": 0.2,
+    "completed": 1.0,
+    "explanation": 0.467,
+    "difficulty": "hard"
+   },
+   "pagination_offset": {
+    "suspect_sha": 0.8,
+    "owner": 0.8,
+    "completed": 1.0,
+    "explanation": 0.9,
+    "difficulty": "medium"
+   },
+   "recursion_base_case": {
+    "suspect_sha": 0.8,
+    "owner": 0.8,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   }
+  },
+  "failures": []
+ },
+ "mock_degraded": {
+  "generated_at": "2026-11-01T17:43:22+00:00",
+  "adapter": "mock:degraded",
+  "judge": "heuristic",
+  "trials": 5,
+  "cases": 12,
+  "intervals": {
+   "suspect_sha": {
+    "point": 0.45,
+    "low": 0.3333333333333333,
+    "high": 0.5504166666666644
+   },
+   "owner": {
+    "point": 0.45,
+    "low": 0.3333333333333333,
+    "high": 0.5504166666666644
+   },
+   "completed": {
+    "point": 1.0,
+    "low": 1.0,
+    "high": 1.0
+   },
+   "explanation": {
+    "point": 0.7616633333333334,
+    "low": 0.6666600000000003,
+    "high": 0.8600277499999998
+   }
+  },
+  "scalars": {
+   "brier": 0.3859,
+   "ece": 0.4045,
+   "judge_oracle_kappa": 0.3103,
+   "latency_p50_s": 9.308,
+   "latency_p95_s": 12.481,
+   "cost_total_usd": 0.564
+  },
+  "per_case": {
+   "config_keyerror": {
+    "suspect_sha": 0.8,
+    "owner": 0.8,
+    "completed": 1.0,
+    "explanation": 0.84,
+    "difficulty": "easy"
+   },
+   "split_indexerror": {
+    "suspect_sha": 0.2,
+    "owner": 0.2,
+    "completed": 1.0,
+    "explanation": 0.6,
+    "difficulty": "medium"
+   },
+   "none_attributeerror": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 0.733,
+    "difficulty": "medium"
+   },
+   "zero_division": {
+    "suspect_sha": 0.4,
+    "owner": 0.4,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   },
+   "type_error_concat": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "easy"
+   },
+   "silent_wrong_total": {
+    "suspect_sha": 0.4,
+    "owner": 0.4,
+    "completed": 1.0,
+    "explanation": 0.7,
+    "difficulty": "hard"
+   },
+   "import_rename": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 0.7,
+    "difficulty": "medium"
+   },
+   "attribute_rename": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 0.7,
+    "difficulty": "medium"
+   },
+   "regex_tightened": {
+    "suspect_sha": 0.6,
+    "owner": 0.6,
+    "completed": 1.0,
+    "explanation": 0.8,
+    "difficulty": "medium"
+   },
+   "timezone_naive": {
+    "suspect_sha": 0.2,
+    "owner": 0.2,
+    "completed": 1.0,
+    "explanation": 0.467,
+    "difficulty": "hard"
+   },
+   "pagination_offset": {
+    "suspect_sha": 0.2,
+    "owner": 0.2,
+    "completed": 1.0,
+    "explanation": 0.6,
+    "difficulty": "medium"
+   },
+   "recursion_base_case": {
+    "suspect_sha": 0.2,
+    "owner": 0.2,
+    "completed": 1.0,
+    "explanation": 1.0,
+    "difficulty": "medium"
+   }
+  },
+  "failures": []
+ },
+ "cases": [
+  {
+   "case_id": "config_keyerror",
+   "template": "config_keyerror",
+   "difficulty": "easy",
+   "culprit_sha": "f1f6483e590d57fcae254d4c1c1e8621f0f1d108",
+   "culprit_files": [
+    "app/settings.py"
+   ],
+   "decoys_after": 3,
+   "decoys_same_file": 1,
+   "expected_error_type": "KeyError",
+   "reference_root_cause": "get_timeout in app/settings.py was changed from cfg.get('timeout', 30) to a direct cfg['timeout'] subscript, removing the default. build_worker_config in app/worker.py builds a config with no 'timeout' key, so the lookup raises."
+  },
+  {
+   "case_id": "split_indexerror",
+   "template": "split_indexerror",
+   "difficulty": "medium",
+   "culprit_sha": "ae5b84ea253f30887af2f5e638b05a1a8a38d3be",
+   "culprit_files": [
+    "lib/tags.py"
+   ],
+   "decoys_after": 3,
+   "decoys_same_file": 1,
+   "expected_error_type": "IndexError",
+   "reference_root_cause": "parse_tag in lib/tags.py lost its `if len(parts) < 2` guard, so any tag without a ':' separator produces a one-element list and parts[1] raises IndexError."
+  },
+  {
+   "case_id": "none_attributeerror",
+   "template": "none_attributeerror",
+   "difficulty": "medium",
+   "culprit_sha": "363c5aaa9e42c6110488ec45f2abfd71b0c869f4",
+   "culprit_files": [
+    "core/names.py"
+   ],
+   "decoys_after": 2,
+   "decoys_same_file": 1,
+   "expected_error_type": "AttributeError",
+   "reference_root_cause": "normalise in core/names.py dropped its `if name is None` guard. core/merge.py passes r.get('name'), which is None for records with no name, so .strip() fails."
+  },
+  {
+   "case_id": "zero_division",
+   "template": "zero_division",
+   "difficulty": "medium",
+   "culprit_sha": "e99dd2e745882cd2de6ed1d655e8ee7fe89f803c",
+   "culprit_files": [
+    "metrics/stats.py"
+   ],
+   "decoys_after": 3,
+   "decoys_same_file": 1,
+   "expected_error_type": "ZeroDivisionError",
+   "reference_root_cause": "mean in metrics/stats.py lost its `if not values` early return. A region with no samples that night yields an empty list, so len(values) is 0 and the division fails."
+  },
+  {
+   "case_id": "type_error_concat",
+   "template": "type_error_concat",
+   "difficulty": "easy",
+   "culprit_sha": "f095179388479b58c8bffe0455f56742b3876a80",
+   "culprit_files": [
+    "ui/format.py"
+   ],
+   "decoys_after": 2,
+   "decoys_same_file": 0,
+   "expected_error_type": "TypeError",
+   "reference_root_cause": "label in ui/format.py dropped the str() conversion around count, so concatenating the integer count onto a string raises TypeError."
+  },
+  {
+   "case_id": "silent_wrong_total",
+   "template": "silent_wrong_total",
+   "difficulty": "hard",
+   "culprit_sha": "dcb3be7233fd7531f87dc436553f996bd9c44a44",
+   "culprit_files": [
+    "billing/totals.py"
+   ],
+   "decoys_after": 3,
+   "decoys_same_file": 1,
+   "expected_error_type": "none",
+   "reference_root_cause": "line_total in billing/totals.py added a final quantize to Decimal('1'), rounding every line to whole units before summation. Nothing raises; the invoice total is simply wrong, and the error compounds across lines."
+  },
+  {
+   "case_id": "import_rename",
+   "template": "import_rename",
+   "difficulty": "medium",
+   "culprit_sha": "e0a77bcc02922f1a64de24d42c5cbfbb7743059d",
+   "culprit_files": [
+    "store/inventory.py"
+   ],
+   "decoys_after": 3,
+   "decoys_same_file": 0,
+   "expected_error_type": "ImportError",
+   "reference_root_cause": "check_stock in store/inventory.py was renamed to stock_level without updating store/api.py, which still imports the old name, so the module fails at import time."
+  },
+  {
+   "case_id": "attribute_rename",
+   "template": "attribute_rename",
+   "difficulty": "medium",
+   "culprit_sha": "233f3b414c77821bc2856fd319fbb5684f80c693",
+   "culprit_files": [
+    "models/user.py"
+   ],
+   "decoys_after": 2,
+   "decoys_same_file": 0,
+   "expected_error_type": "AttributeError",
+   "reference_root_cause": "The User attribute email_address in models/user.py was renamed to email. notify/mailer.py still reads user.email_address, so attribute access fails."
+  },
+  {
+   "case_id": "regex_tightened",
+   "template": "regex_tightened",
+   "difficulty": "medium",
+   "culprit_sha": "98aee058b72a3518e56b9efff86af2c854b1fc3f",
+   "culprit_files": [
+    "release/version.py"
+   ],
+   "decoys_after": 2,
+   "decoys_same_file": 1,
+   "expected_error_type": "AttributeError",
+   "reference_root_cause": "The version pattern in release/version.py was tightened from v?(\\d+) to v(\\d+), making the leading v mandatory. Tags published without the prefix no longer match, so search returns None and m.group raises."
+  },
+  {
+   "case_id": "timezone_naive",
+   "template": "timezone_naive",
+   "difficulty": "hard",
+   "culprit_sha": "aed2ab0e97542de42217608d3e79063fac0fcaf1",
+   "culprit_files": [
+    "sla/window.py"
+   ],
+   "decoys_after": 2,
+   "decoys_same_file": 1,
+   "expected_error_type": "TypeError",
+   "reference_root_cause": "remaining in sla/window.py dropped the timezone.utc argument from datetime.now(), making it naive. Ticket deadlines are timezone-aware, and subtracting a naive from an aware datetime raises."
+  },
+  {
+   "case_id": "pagination_offset",
+   "template": "pagination_offset",
+   "difficulty": "medium",
+   "culprit_sha": "8581906fad4ce9deaacefeda89c945cd2c532654",
+   "culprit_files": [
+    "listing/page.py"
+   ],
+   "decoys_after": 3,
+   "decoys_same_file": 0,
+   "expected_error_type": "none",
+   "reference_root_cause": "slice_for in listing/page.py changed offset from (page - 1) * size to page * size, so page 1 starts at index size instead of 0. Nothing raises; the first page of every result set is silently skipped."
+  },
+  {
+   "case_id": "recursion_base_case",
+   "template": "recursion_base_case",
+   "difficulty": "medium",
+   "culprit_sha": "523f07949fbe44c888e55b552a650b96b08648c5",
+   "culprit_files": [
+    "tree/walk.py"
+   ],
+   "decoys_after": 2,
+   "decoys_same_file": 1,
+   "expected_error_type": "RecursionError",
+   "reference_root_cause": "flatten in tree/walk.py lost its `if node is None` base case, so recursion never terminates at a leaf and the call stack is exhausted."
+  }
+ ],
+ "example": {
+  "case_id": "attribute_rename",
+  "template": "attribute_rename",
+  "difficulty": "medium",
+  "culprit_sha": "233f3b414c77821bc2856fd319fbb5684f80c693",
+  "culprit_files": [
+   "models/user.py"
+  ],
+  "decoys_after": 2,
+  "decoys_same_file": 0,
+  "expected_error_type": "AttributeError",
+  "reference_root_cause": "The User attribute email_address in models/user.py was renamed to email. notify/mailer.py still reads user.email_address, so attribute access fails.",
+  "commits": [
+   {
+    "sha": "3847c5e5b130006c654e2200d39a01df381ce4db",
+    "author": "Lena Fischer",
+    "date": "2025-12-31",
+    "subject": "Add user model",
+    "files": [
+     "models/user.py"
+    ]
+   },
+   {
+    "sha": "a8d0a6ba9f5100d7500c0eec4af7b7e1131d02a9",
+    "author": "Sam Okonkwo",
+    "date": "2026-01-01",
+    "subject": "Add welcome mailer",
+    "files": [
+     "notify/mailer.py"
+    ]
+   },
+   {
+    "sha": "233f3b414c77821bc2856fd319fbb5684f80c693",
+    "author": "Lena Fischer",
+    "date": "2026-01-02",
+    "subject": "Shorten user email field",
+    "files": [
+     "models/user.py"
+    ]
+   },
+   {
+    "sha": "8f0704350924f47c0b041c2febc335c26c0d4685",
+    "author": "Sam Okonkwo",
+    "date": "2026-01-03",
+    "subject": "Add unsubscribe link builder",
+    "files": [
+     "notify/links.py"
+    ]
+   },
+   {
+    "sha": "5a1feb11125d106cdc81fe7c8183ddb226b01768",
+    "author": "Sam Okonkwo",
+    "date": "2026-01-04",
+    "subject": "Add notify package doc",
+    "files": [
+     "notify/README.md"
+    ]
+   }
+  ],
+  "log": "2026-04-02T19:07:44Z ERROR onboarding.welcome failed for signup 90211\nTraceback (most recent call last):\n  File \"/srv/onboarding/welcome.py\", line 28, in run\n    send_welcome(user, transport)\n  File \"/srv/notify/mailer.py\", line 2, in send_welcome\n    return transport.send(to=user.email_address, subject=\"Welcome\")\nAttributeError: 'User' object has no attribute 'email_address'",
+  "answer": {
+   "summary": "AttributeError due to outdated attribute reference in mailer module.",
+   "root_cause_hypothesis": "The error occurs because the 'send_welcome' function in 'notify/mailer.py' references 'user.email_address', which was renamed to 'user.email' in commit 233f3b414c by Lena Fischer.",
+   "confidence": 0.9,
+   "suspect_commit": "233f3b414c",
+   "severity": "high",
+   "recommended_owner": "Lena Fischer",
+   "next_steps": [
+    "Update 'notify/mailer.py' to use 'user.email' instead of 'user.email_address'.",
+    "Review other parts of the codebase for similar outdated references to 'user.email_address'.",
+    "Test the onboarding process to ensure the welcome email is sent successfully after the fix."
+   ]
+  },
+  "owner": "Lena Fischer"
+ }
+}

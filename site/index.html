@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>llm-eval-gate</title>
+<meta name="description" content="Evals for incident-triage-agent: planted bugs, repeated runs, and a gate that blocks a change only when the agent got worse by more than noise.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* v2: plain question first, then four steps carried by one real test. Plain sentence on top, the engineer's line under it. */
+:root { --paper: #f6f6f4; --sheet: #fff; --ink: #17181a; --mute: #6f7174; --grid: #e3e4e1; --rule: #cfd0cc; --blue: #2140ff; --blue-tint: rgba(33,64,255,.09); --red: #d8341a; --red-tint: rgba(216,52,26,.08); --green: #1d7a3e; --green-tint: rgba(29,122,62,.09); --hatch: #ebebe8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #121314; --sheet: #191a1c; --ink: #e9eaec; --mute: #8e9196; --grid: #1e2022; --rule: #33363a; --blue: #7d90ff; --blue-tint: rgba(125,144,255,.13); --red: #ff7058; --red-tint: rgba(255,112,88,.12); --green: #5fd08a; --green-tint: rgba(95,208,138,.12); --hatch: #202225; } }
+:root[data-theme="dark"] { --paper: #121314; --sheet: #191a1c; --ink: #e9eaec; --mute: #8e9196; --grid: #1e2022; --rule: #33363a; --blue: #7d90ff; --blue-tint: rgba(125,144,255,.13); --red: #ff7058; --red-tint: rgba(255,112,88,.12); --green: #5fd08a; --green-tint: rgba(95,208,138,.12); --hatch: #202225; }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); font: 16px/1.55 "IBM Plex Sans", system-ui, sans-serif; background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 40px 40px; }
+main { max-width: 1120px; margin: 0 auto; padding: 0 16px 80px; }
+a { color: var(--blue); text-underline-offset: 3px; }
+code, .mono, pre, table, .eng, .hd, .btn, .tag, .switch button { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+code { font-size: .9em; }
+.mute { color: var(--mute); }
+.hd { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1.5px solid var(--ink); padding: 22px 0 10px; font-size: 13px; }
+.hd b { font: 700 20px/1 "IBM Plex Sans Condensed", sans-serif; }
+.hd nav { display: flex; gap: 18px; flex-wrap: wrap; }
+h1, h2, h3 { font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 700; }
+.intro { padding: 44px 0 10px; }
+h1 { margin: 0 0 16px; font-size: clamp(32px, 5vw, 54px); line-height: 1.04; max-width: 19ch; }
+.lede { max-width: 64ch; margin: 0 0 22px; font-size: 18px; }
+.btn { font-weight: 600; font-size: 13px; line-height: 1; padding: 11px 14px; border: 1.5px solid var(--ink); color: var(--ink); text-decoration: none; background: var(--sheet); display: inline-block; }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); border: 1.5px solid var(--ink); background: var(--sheet); margin-top: 30px; }
+.facts > div { padding: 14px 16px; min-width: 0; }
+.facts > div + div { border-left: 1px solid var(--rule); }
+.facts .v { font: 700 30px/1.1 "IBM Plex Sans Condensed", sans-serif; }
+.facts .k { font-size: 13px; color: var(--mute); }
+@media (max-width: 720px) { .facts { grid-template-columns: minmax(0, 1fr); } .facts > div + div { border-left: 0; border-top: 1px solid var(--rule); } }
+.sec { margin-top: 64px; }
+.sec > header { border-bottom: 1.5px solid var(--ink); padding-bottom: 8px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.sec > header h2 { margin: 0; font-size: 28px; line-height: 1.1; }
+.sec > header span { font-size: 14px; color: var(--mute); }
+.step { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; padding: 26px 0; border-bottom: 1px solid var(--rule); }
+.step:last-child { border-bottom: 0; }
+@media (max-width: 860px) { .step { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+.step .num { font: 600 13px/1 "IBM Plex Mono", monospace; color: var(--blue); }
+.step h3 { margin: 8px 0 10px; font-size: 26px; line-height: 1.1; }
+.step p { margin: 0 0 12px; }
+.eng { font-size: 12.5px; color: var(--mute); border-left: 2px solid var(--rule); padding-left: 10px; margin-top: 14px; }
+.eng b { color: var(--ink); font-weight: 600; }
+.card { border: 1.5px solid var(--ink); background: var(--sheet); min-width: 0; }
+.card > .t { font: 500 12px/1 "IBM Plex Mono", monospace; color: var(--mute); padding: 9px 12px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.card > .b { padding: 12px; }
+.card + .card { margin-top: 12px; }
+pre { margin: 0; font-size: 12.5px; line-height: 1.5; overflow-x: auto; white-space: pre; }
+.diff .add { color: var(--green); } .diff .del { color: var(--red); }
+.tl { list-style: none; margin: 0; padding: 0; font: 13px/1.4 "IBM Plex Mono", monospace; }
+.tl li { display: grid; grid-template-columns: 5.6rem 5.2rem minmax(0, 1fr); gap: 4px 10px; padding: 8px 12px; border-bottom: 1px solid var(--rule); align-items: baseline; }
+.tl li:last-child { border-bottom: 0; }
+.tl .s { color: var(--mute); }
+.tl .f { grid-column: 3; color: var(--mute); font-size: 12px; }
+.tl li.bug { background: var(--red-tint); box-shadow: inset 3px 0 0 var(--red); }
+.tl li.decoy .lbl { color: var(--mute); }
+.tl .lbl { grid-column: 3; font-size: 11.5px; font-weight: 600; }
+.tl li.bug .lbl { color: var(--red); }
+@media (max-width: 520px) { .tl li { grid-template-columns: 5.2rem minmax(0, 1fr); } .tl .d { display: none; } .tl .f, .tl .lbl { grid-column: 2; } }
+.answer { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 8px 14px; font-size: 14.5px; }
+.answer .k { color: var(--mute); font-size: 13px; }
+@media (max-width: 520px) { .answer { grid-template-columns: 1fr; gap: 2px; } .answer .k { margin-top: 8px; } }
+.checks { list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 4px 8px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.checks li:last-child { border-bottom: 0; }
+.checks .ic { font: 700 15px/1.3 "IBM Plex Mono", monospace; color: var(--green); }
+.checks .how { grid-column: 2; font-size: 13px; color: var(--mute); }
+.checks .vs { grid-column: 2; font: 12.5px/1.6 "IBM Plex Mono", monospace; }
+.dots i { display: inline-block; width: 11px; height: 11px; border: 1.5px solid var(--mute); border-radius: 50%; margin-right: 3px; vertical-align: -1px; }
+.dots i.hit { background: var(--ink); border-color: var(--ink); }
+.switch { display: flex; flex-wrap: wrap; margin-bottom: 14px; }
+.switch button { font-size: 13px; line-height: 1.3; text-align: left; padding: 9px 14px; border: 1.5px solid var(--ink); background: var(--sheet); color: var(--ink); cursor: pointer; margin: 0 -1.5px -1.5px 0; }
+.switch button small { display: block; color: var(--mute); font-size: 11px; }
+.switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.switch button[aria-pressed="true"] small { color: var(--paper); opacity: .75; }
+.switch button:focus-visible, .btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.band { display: grid; grid-template-columns: 11.5rem minmax(0, 1fr) 13rem; gap: 4px 14px; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+.band:last-child { border-bottom: 0; }
+.band .lab { font-size: 14px; line-height: 1.25; }
+.band .lab small { display: block; color: var(--mute); font: 11px "IBM Plex Mono", monospace; }
+.band .scale { position: relative; height: 30px; }
+.band .axis { position: absolute; left: 0; right: 0; top: 15px; height: 1px; background: var(--rule); }
+.band .tolz { position: absolute; top: 8px; height: 14px; background: repeating-linear-gradient(135deg, transparent 0 4px, var(--blue-tint) 4px 7px); border: 1px dashed var(--blue); }
+.band .bp { position: absolute; top: 4px; width: 2px; height: 22px; background: var(--mute); transform: translateX(-1px); }
+.band .floor { position: absolute; top: 0; height: 30px; border-left: 2px solid var(--red); }
+.band .cur { position: absolute; top: 9px; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); transform: translateX(-6px); transition: left .5s; }
+.band.fail .cur { background: var(--red); }
+.band .vd { font-size: 13px; line-height: 1.3; }
+.band .vd b { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+.band.ok .vd b { color: var(--green); } .band.fail .vd b { color: var(--red); }
+@media (max-width: 760px) { .band { grid-template-columns: minmax(0, 1fr); } }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--mute); padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+.legend i { display: inline-block; vertical-align: -1px; margin-right: 6px; }
+.verdict { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 12px; border-top: 1.5px solid var(--ink); }
+.verdict .big { font: 700 34px/1 "IBM Plex Sans Condensed", sans-serif; }
+.verdict.pass .big { color: var(--green); } .verdict.block .big { color: var(--red); }
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-weight: 500; color: var(--mute); font-size: 11.5px; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+td { padding: 8px 14px 8px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; vertical-align: middle; }
+tr.flip td { background: var(--green-tint); }
+tr.flip td:first-child { box-shadow: inset 3px 0 0 var(--green); padding-left: 8px; }
+td.why { white-space: normal; color: var(--mute); min-width: 18rem; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.rule { font: 13px/1.6 "IBM Plex Mono", monospace; }
+footer { margin-top: 56px; border-top: 1.5px solid var(--ink); padding-top: 10px; font-size: 12.5px; color: var(--mute); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+<div class="hd"><b>llm-eval-gate</b><nav><a href="#how">How it works</a><a href="#results">Results</a><a href="#eng">For engineers</a><a href="https://github.com/hharshitarora/llm-eval-gate">GitHub</a></nav></div>
+
+<section class="intro">
+<h1>Did my triage agent just get better, or worse?</h1>
+<p class="lede">My <a href="https://github.com/hharshitarora/incident-triage-agent">incident-triage-agent</a> reads a crash log and names the commit that caused it. Like any AI agent, it answers a little differently every time, so one try can't tell me whether a change helped. These are its evals: tests with known answers, each run several times, every answer graded, and the change blocked only if the scores dropped by more than normal run-to-run wobble.</p>
+<div class="btns"><a class="btn primary" href="#how">See it on one real test</a><a class="btn" href="https://github.com/hharshitarora/llm-eval-gate">GitHub</a></div>
+<div class="facts" id="facts"></div>
+</section>
+
+<section class="sec" id="how">
+<header><h2>How it works, on one real test</h2><span>the test below is one of the twelve, followed through every step</span></header>
+
+<div class="step">
+  <div>
+    <span class="num">STEP 1</span>
+    <h3>Plant a bug, so the right answer is known.</h3>
+    <p>A script builds a small code repository and slips a bug into one commit. Because it planted the bug itself, it knows exactly which commit broke things and who wrote it. Then it writes the crash log a real user would trigger.</p>
+    <p>Here, a teammate renamed a field on <code>User</code>, but the mailer still reads the old name.</p>
+    <div class="eng"><b>For engineers:</b> 12 generated repos with byte-reproducible commit IDs. CI rebuilds them and fails if one ID drifts. Harmless commits land after the bug, so "blame the latest commit" scores zero.</div>
+  </div>
+  <div>
+    <div class="card"><div class="t"><span>the test repo's history</span><span id="ex-id"></span></div><ul class="tl" id="tl"></ul></div>
+    <div class="card"><div class="t"><span>the crash log the agent receives</span></div><div class="b"><pre id="log"></pre></div></div>
+  </div>
+</div>
+
+<div class="step">
+  <div>
+    <span class="num">STEP 2</span>
+    <h3>Give the agent the crash. Three times.</h3>
+    <p>The agent gets what an on-call engineer would get: the repository and the log. Nothing about the answer. Since its answer can change from run to run, every test runs three times.</p>
+    <p>The agent reads the log, the code and its history, and names the commit it thinks caused the crash.</p>
+    <div class="eng"><b>For engineers:</b> the agent runs as a separate process. The harness calls <code>python -m triage --json</code> and reads one JSON object; it never imports the agent, so grading a different agent is a 50-line adapter.</div>
+  </div>
+  <div>
+    <div class="card"><div class="t"><span>the agent's answer, one run of the November version</span></div><div class="b answer" id="answer"></div></div>
+  </div>
+</div>
+
+<div class="step">
+  <div>
+    <span class="num">STEP 3</span>
+    <h3>Grade each answer.</h3>
+    <p>Most of the grading is plain comparison, no AI involved: is it the commit we planted, and is it the person who wrote it?</p>
+    <p>Only the written explanation needs judgement. A second AI model compares it with the explanation written when the bug was planted, and that judge is itself checked against the plain facts on every run.</p>
+    <div class="eng"><b>For engineers:</b> exact match on commit (7+ char prefix) and owner surname. Judge scores the mechanism 0 to 3. Confidence is graded too (Brier, ECE): an agent that says 90% should be right about 90% of the time.</div>
+  </div>
+  <div>
+    <div class="card"><div class="t"><span>this test's grades, all three runs</span><span>September &rarr; November</span></div><div class="b"><ul class="checks" id="checks"></ul></div></div>
+  </div>
+</div>
+
+<div class="step">
+  <div>
+    <span class="num">STEP 4</span>
+    <h3>Compare with last time, allowing for wobble.</h3>
+    <p>All twelve tests are combined into one score per check. Then the gate measures how far those scores move if you rerun the same agent unchanged. That is the wobble.</p>
+    <p>A drop smaller than the wobble is luck, so it passes. A bigger drop, or any score under a hard minimum, blocks the change.</p>
+    <p>Switch to the broken agent to see a block.</p>
+    <div class="eng"><b>For engineers:</b> wobble comes from a bootstrap that resamples whole tests. Allowed drop = max(policy minimum, wobble now + wobble last time). Exit code 0 or 1, so CI can block the merge.</div>
+  </div>
+  <div>
+    <div class="switch" id="switch"></div>
+    <div class="card"><div class="t"><span id="cmp-t"></span></div>
+      <div class="legend"><span><i style="width:2px;height:14px;background:var(--mute)"></i>last time</span><span><i style="width:18px;height:10px;border:1px dashed var(--blue);background:repeating-linear-gradient(135deg,transparent 0 4px,var(--blue-tint) 4px 7px)"></i>normal wobble</span><span><i style="width:0;height:14px;border-left:2px solid var(--red)"></i>hard minimum</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--ink)"></i>this run</span></div>
+      <div id="bands"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="sec" id="results">
+<header><h2>All twelve tests</h2><span>named the right commit, per run</span></header>
+<div class="card"><div class="tw" style="padding:0 12px"><table id="cases"></table></div></div>
+<p class="mute" id="results-note" style="font-size:14px;max-width:80ch"></p>
+</section>
+
+<section class="sec" id="eng">
+<header><h2>For engineers</h2><span>the policy, the raw output, and how to run it</span></header>
+<div class="two">
+  <div class="card"><div class="t"><span>gate.json, reviewed like code</span></div><div class="tw" style="padding:0 12px"><table id="policy"></table></div></div>
+  <div class="card"><div class="t"><span>what CI prints, November against September</span></div><div class="b"><pre id="term"></pre></div></div>
+</div>
+<div class="card" style="margin-top:14px"><div class="t"><span>run it, no API key, under a minute</span></div><div class="b"><pre>git clone https://github.com/hharshitarora/llm-eval-gate
+cd llm-eval-gate
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+
+python -m evalgate build                         # the 12 test repos
+python -m evalgate run                           # test agent, passes, exit 0
+python -m evalgate run --adapter mock:degraded   # broken test agent, blocked, exit 1</pre></div></div>
+</section>
+
+<footer id="foot"></footer>
+</main>
+<script src="gate.js"></script>
+<script>
+const $ = (s) => document.querySelector(s), E = G.esc, f3 = G.f3;
+const LABEL = { completed: "Finished without crashing", suspect_sha: "Named the right commit", owner: "Named the right owner", explanation: "Explained the cause", brier: "Confidence was honest", ece: "Confidence was honest" };
+const SUB = { brier: "Brier, lower is better", ece: "ECE, lower is better" };
+const pct = (x) => Math.round(x * 100) + "%";
+const dots = (mean, n) => { const k = Math.round(mean * n); return `<span class="dots" aria-label="${k} of ${n}">${Array.from({ length: n }, (_, i) => `<i class="${i < k ? "hit" : ""}"></i>`).join("")}</span> ${k}/${n}`; };
+
+G.load().then((d) => {
+  const ex = d.example, sept = d.sept, nov = d.nov, short = (s) => s.slice(0, 7);
+  const solved = (run) => Object.values(run.per_case).filter((r) => r.suspect_sha >= 0.5).length;
+  const novV = G.evaluate(nov, sept, d.policy), novOk = novV.every((v) => v.ok);
+
+  $("#facts").innerHTML = [
+    [`${nov.cases} tests &times; ${nov.trials} runs`, "every change to the triage agent is graded on"],
+    [`${solved(sept)} &rarr; ${solved(nov)} of ${nov.cases}`, "tests solved, September to November"],
+    [novOk ? "PASSED" : "BLOCKED", "the gate's verdict on November"],
+  ].map(([v, k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+
+  // Step 1
+  $("#ex-id").textContent = ex.case_id;
+  const bugAt = ex.commits.findIndex((c) => c.sha === ex.culprit_sha);
+  $("#tl").innerHTML = ex.commits.map((c, i) => {
+    const cls = i === bugAt ? "bug" : i > bugAt ? "decoy" : "";
+    const lbl = i === bugAt ? `<span class="lbl">&larr; the planted bug, by ${E(c.author)}</span>` : i > bugAt ? `<span class="lbl">harmless commit after the bug</span>` : "";
+    return `<li class="${cls}"><span class="d s">${c.date}</span><span>${short(c.sha)}</span><span>${E(c.subject)}</span><span class="f">${c.files.map(E).join(", ")}</span>${lbl}</li>`;
+  }).join("");
+  $("#log").textContent = ex.log;
+
+  // Step 2
+  const a = ex.answer;
+  $("#answer").innerHTML = `<div class="k">suspect commit</div><div class="mono">${short(a.suspect_commit)}</div>
+    <div class="k">owner</div><div>${E(a.recommended_owner)}</div>
+    <div class="k">confidence</div><div class="mono">${pct(a.confidence)}</div>
+    <div class="k">explanation</div><div>${E(a.root_cause_hypothesis)}</div>`;
+
+  // Step 3
+  const ps = sept.per_case[ex.case_id], pn = nov.per_case[ex.case_id], n = nov.trials;
+  const row = (label, how, m, fmt) => `<li><span class="ic" style="color:${pn[m] >= 0.99 ? "var(--green)" : "var(--red)"}">${pn[m] >= 0.99 ? "&check;" : "&times;"}</span><span>${label}</span><span class="how">${how}</span><span class="vs">${fmt(ps[m])} &nbsp;&rarr;&nbsp; ${fmt(pn[m])}</span></li>`;
+  $("#checks").innerHTML = [
+    row("Right commit?", `compared with ${short(ex.culprit_sha)}, the one we planted`, "suspect_sha", (x) => dots(x, n)),
+    row("Right owner?", `compared with ${E(ex.owner)}, who wrote that commit`, "owner", (x) => dots(x, n)),
+    row("Explanation correct?", `judge reads it against: "${E(ex.reference_root_cause)}"`, "explanation", (x) => `average ${f3(x)} of 1`),
+  ].join("");
+
+  // Step 4
+  const S = {
+    nov: { label: "My November change", sub: "the real agent, against September", cur: nov, base: sept },
+    broken: { label: "A deliberately broken agent", sub: "a test stand-in made worse on purpose", cur: d.mock_degraded, base: d.mock_base },
+  };
+  const scale = (x) => (Math.max(0, Math.min(1, x)) * 100).toFixed(2) + "%";
+  const plain = (x, higher) => {
+    if (x.kind === "floor") return `below the hard minimum of ${f3(d.policy.metrics[x.m].floor)}`;
+    if (x.kind === "ceiling") return `above the hard maximum of ${f3(d.policy.metrics[x.m].ceiling)}`;
+    if (x.base === null) return "no earlier run to compare";
+    const drop = higher ? x.base - x.v : x.v - x.base;
+    if (drop > x.tol) return `worse by ${f3(drop)}, more than the ${f3(x.tol)} wobble allowed`;
+    if (drop > 0.0005) return `worse by ${f3(drop)}, within the ${f3(x.tol)} wobble`;
+    return drop < -0.0005 ? `better by ${f3(-drop)}` : "no change";
+  };
+  function show(k) {
+    const s = S[k], v = G.evaluate(s.cur, s.base, d.policy), ok = v.every((x) => x.ok);
+    document.querySelectorAll("#switch button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.k === k));
+    $("#cmp-t").textContent = `${s.cur.cases} tests x ${s.cur.trials} runs, ${s.sub}`;
+    $("#bands").innerHTML = v.map((x) => {
+      const rule = d.policy.metrics[x.m], higher = (rule.direction || "higher") === "higher", bound = higher ? rule.floor : rule.ceiling;
+      const tolz = x.base !== null && x.tol ? (() => { const lo = higher ? x.base - x.tol : x.base, hi = higher ? x.base : x.base + x.tol; return `<div class="tolz" style="left:${scale(lo)};width:calc(${scale(hi)} - ${scale(lo)})"></div>`; })() : "";
+      const bp = x.base !== null ? `<div class="bp" style="left:${scale(x.base)}"></div>` : "";
+      return `<div class="band ${x.ok ? "ok" : "fail"}"><div class="lab">${LABEL[x.m]}<small>${SUB[x.m] || x.m}</small></div>
+        <div class="scale"><div class="axis"></div>${tolz}${bp}${bound !== undefined ? `<div class="floor" style="left:${scale(bound)}"></div>` : ""}<div class="cur" style="left:${scale(x.v)}"></div></div>
+        <div class="vd"><b>${x.ok ? "OK" : "FAIL"} ${f3(x.v)}</b><br>${plain(x, higher)}</div></div>`;
+    }).join("");
+    $("#verdict").className = "verdict " + (ok ? "pass" : "block");
+    $("#verdict").innerHTML = `<span class="big">${ok ? "PASSED" : "BLOCKED"}</span><span>${ok ? "The change can merge." : `The change cannot merge. ${v.filter((x) => !x.ok).length} check(s) failed.`}</span>`;
+  }
+  $("#switch").innerHTML = Object.entries(S).map(([k, s]) => `<button data-k="${k}" aria-pressed="false">${s.label}<small>${s.sub}</small></button>`).join("");
+  document.querySelectorAll("#switch button").forEach((b) => b.onclick = () => show(b.dataset.k));
+  show(new URLSearchParams(location.search).get("s") || "nov");
+
+  // Results
+  const flips = [];
+  $("#cases").innerHTML = `<tr><th>test</th><th>difficulty</th><th>September</th><th>November</th><th>what the bug is</th></tr>` + d.cases.map((c) => {
+    const a = sept.per_case[c.case_id].suspect_sha, b = nov.per_case[c.case_id].suspect_sha, flip = b - a >= 0.5;
+    if (flip) flips.push(c.case_id);
+    return `<tr class="${flip ? "flip" : ""}"><td>${E(c.case_id)}</td><td>${c.difficulty}</td><td>${dots(a, sept.trials)}</td><td>${dots(b, nov.trials)}</td><td class="why">${E(c.reference_root_cause.split(". ")[0])}.</td></tr>`;
+  }).join("");
+  const still = d.cases.filter((c) => nov.per_case[c.case_id].suspect_sha < 0.5).map((c) => `<code>${E(c.case_id)}</code>`);
+  $("#results-note").innerHTML = `Highlighted: ${flips.map((f) => `<code>${E(f)}</code>`).join(", ")}, solved after the agent learned to look up names from the error message. Still unsolved: ${still.join(" and ")}. Neither has a stack trace, only a wrong number, so nothing in the log points at a file or a name.`;
+
+  // For engineers
+  $("#policy").innerHTML = `<tr><th>check</th><th>hard limit</th><th>min. allowed drop</th></tr>` + Object.entries(d.policy.metrics).map(([m, r]) =>
+    `<tr><td>${m}</td><td>${"floor" in r ? "&ge; " + r.floor : "&le; " + r.ceiling}</td><td>${r.min_tolerance}</td></tr>`).join("");
+  $("#term").textContent = G.consoleText({ cur: nov }, novV);
+  $("#foot").textContent = `Every number is read from the repo's own files: gate.json, the September and November runs of incident-triage-agent (${nov.cases} tests x ${nov.trials} runs, ${nov.judge} judge), the test agent's runs, and the ${ex.case_id} test repo. Names in the test repos are made up. Verdicts use the gate's own rule. MIT.`;
+});
+</script>
+</body>
+</html>

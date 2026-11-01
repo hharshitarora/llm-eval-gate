@@ -2,7 +2,9 @@
 
 [![eval-gate](https://github.com/hharshitarora/llm-eval-gate/actions/workflows/eval.yml/badge.svg)](https://github.com/hharshitarora/llm-eval-gate/actions/workflows/eval.yml)
 
-> A CI quality gate for an agent whose output changes between identical runs.
+> Evals for my [incident-triage-agent](https://github.com/hharshitarora/incident-triage-agent): a CI gate that blocks a change only when the agent got worse by more than run-to-run noise.
+
+**Website:** [hharshitarora.github.io/llm-eval-gate](https://hharshitarora.github.io/llm-eval-gate/) follows one planted bug through every step, with the real September and November runs.
 
 Blocking a merge on a unit test is easy: the test passes or it does not. Blocking
 a merge on "the agent got worse" is not, because the agent's score moves on its
@@ -15,11 +17,7 @@ This is a working answer to that problem, pointed at
 an agent that reads a crash log, walks git history, and names the commit that
 caused the incident.
 
-![demo](docs/demo.gif)
-
-Same suite, two agents. The healthy one passes and exits 0; a synthetic quality
-drop is blocked with exit 1, and every failing line says what moved and how much
-movement counted as normal.
+[![The project page: one planted bug followed through every step](docs/page.png)](https://hharshitarora.github.io/llm-eval-gate/)
 
 ## How it works
 
@@ -41,8 +39,8 @@ flowchart LR
     GATE -->|"beyond band, or below floor"| X["block the merge"]
 ```
 
-The system under test sits behind a process boundary and is never imported, so
-the same graders work against any agent that can print a JSON object.
+The agent sits behind a process boundary and is never imported, so it is graded
+exactly as it ships, with its own virtualenv and dependencies.
 
 ## What it looks like when it fires
 
@@ -350,6 +348,12 @@ Stated plainly, because a gate you have wrong confidence in is worse than none.
 [`DECISIONS.md`](./DECISIONS.md) covers the trade-offs: why a separate repo, why
 process isolation, why the mock adapter exists, and what was deliberately left
 out.
+
+The website lives in `site/`. Its data is generated, never typed:
+`python scripts/make_site.py` rebuilds `site/data.json` from `gate.json`, the
+golden set, both triage baselines, the recorded answer in
+`docs/example-answer.json`, and a fresh seeded run of the degraded mock (no key).
+`tests/test_site.py` checks the page's verdicts against the gate's own.
 
 ## Related
 
