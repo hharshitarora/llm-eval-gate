@@ -111,18 +111,23 @@ It was not reasoning badly. It was choosing from the wrong shortlist.
 
 **After ranking by relevance instead of recency.** Same suite, same models.
 
-| Metric | Before | After |
-|---|---|---|
-| `suspect_sha` | 0.417 | **0.750** |
-| `explanation` | 0.778 | 0.861 |
-| `owner` | 0.583 | 0.750 |
-| `brier` | 0.418 | **0.201** |
-| `ece` | 0.439 | **0.144** |
-| judge/oracle κ | 0.250 | 0.750 |
-| latency p95 | 8.2s | 6.2s |
+| Metric | Before | After | November |
+|---|---|---|---|
+| `suspect_sha` | 0.417 | **0.750** | **0.833** |
+| `explanation` | 0.778 | 0.861 | 0.861 |
+| `owner` | 0.583 | 0.750 | 0.833 |
+| `brier` | 0.418 | **0.201** | **0.134** |
+| `ece` | 0.439 | **0.144** | **0.061** |
+| judge/oracle κ | 0.250 | 0.750 | 1.000 |
+| latency p95 | 8.2s | 6.2s | 6.4s |
 
 Gate passes. Four cases flipped from zero to solved: `config_keyerror`,
 `none_attributeerror`, `zero_division`, `recursion_base_case`.
+
+**November.** The agent gained a codebase search step that reads the code at
+HEAD before it reads history, and that step now also looks up names quoted in
+the error message. `attribute_rename` went from 0 of 3 to 3 of 3. November is
+the committed baseline in `baselines/triage.json`.
 
 ### The calibration result is the interesting one
 
@@ -144,17 +149,17 @@ why. The calibration metrics are what made the failure legible.
 | | Solved |
 |---|---|
 | Traceback names the culprit file (8 cases) | **8 / 8** |
-| It does not (4 cases) | **1 / 4** |
+| It does not (4 cases) | **2 / 4** (was 1 / 4 in September) |
 
-All three remaining failures are cases where the log never names the file that
-changed: `silent_wrong_total` and `pagination_offset` have no traceback at all,
-only a wrong number, and `attribute_rename` raises in the code that *read* the
-attribute rather than the module defining it.
+`attribute_rename` raises in the code that *read* the attribute, not the module
+defining it. In September the agent could follow a traceback to a commit but not
+reason from a symbol to the module that defines it. The November codebase search
+closes that: the error names `'User'`, and `class User` leads to the rename.
 
-That is a clean statement of the ceiling. The agent can follow a traceback to a
-commit; it cannot yet reason from a symbol to the module that defines it. That is
-the next piece of work, and it is only nameable because the suite separates those
-cases deliberately.
+The two remaining failures have no traceback at all, only a wrong number:
+`silent_wrong_total` and `pagination_offset`. Nothing in the log names a file or
+a symbol, so there is nothing to follow. That is the ceiling now, and it is only
+nameable because the suite separates those cases deliberately.
 
 **Caveat, stated rather than buried:** the ranking weights were tuned against the
 same twelve cases they are scored on. Every rule is a general claim about what

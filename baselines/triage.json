@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-09-05T17:47:30+00:00",
+  "generated_at": "2026-11-01T17:14:15+00:00",
   "adapter": "triage",
   "judge": "llm",
   "trials": 3,
   "cases": 12,
   "intervals": {
     "suspect_sha": {
-      "point": 0.75,
-      "low": 0.5,
+      "point": 0.8333333333333334,
+      "low": 0.5833333333333334,
       "high": 1.0
     },
     "owner": {
-      "point": 0.75,
-      "low": 0.5,
+      "point": 0.8333333333333334,
+      "low": 0.5833333333333334,
       "high": 1.0
     },
     "completed": {
@@ -21,17 +21,17 @@
       "high": 1.0
     },
     "explanation": {
-      "point": 0.8611083333333333,
-      "low": 0.6944333333333337,
+      "point": 0.8611083333333335,
+      "low": 0.6944333333333336,
       "high": 1.0
     }
   },
   "scalars": {
-    "brier": 0.2006,
-    "ece": 0.1444,
-    "judge_oracle_kappa": 0.75,
-    "latency_p50_s": 5.772,
-    "latency_p95_s": 6.161,
+    "brier": 0.1339,
+    "ece": 0.0611,
+    "judge_oracle_kappa": 1.0,
+    "latency_p50_s": 5.732,
+    "latency_p95_s": 6.428,
     "cost_total_usd": 0.0
   },
   "per_case": {
@@ -39,7 +39,7 @@
       "suspect_sha": 1.0,
       "owner": 1.0,
       "completed": 1.0,
-      "explanation": 1.0,
+      "explanation": 0.667,
       "difficulty": "easy"
     },
     "split_indexerror": {
@@ -85,10 +85,10 @@
       "difficulty": "medium"
     },
     "attribute_rename": {
-      "suspect_sha": 0.0,
-      "owner": 0.0,
+      "suspect_sha": 1.0,
+      "owner": 1.0,
       "completed": 1.0,
-      "explanation": 0.667,
+      "explanation": 1.0,
       "difficulty": "medium"
     },
     "regex_tightened": {
